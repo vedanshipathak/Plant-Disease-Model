@@ -243,61 +243,39 @@
         }
 
         imageInput.addEventListener('change', function(e) {
-            handleFiles(this.files);
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    const base64Image = e.target.result;
+                    
+                    try {
+                        const response = await fetch('/api', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                image: base64Image
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.error) {
+                            document.getElementById('result').innerHTML = `Error: ${data.error}`;
+                        } else {
+                            document.getElementById('result').innerHTML = `
+                                <h3>Prediction: ${data.prediction}</h3>
+                                <p>Confidence: ${(data.confidence * 100).toFixed(2)}%</p>
+                            `;
+                        }
+                    } catch (error) {
+                        document.getElementById('result').innerHTML = `Error: ${error.message}`;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
         });
-
-        function handleFiles(files) {
-            const file = files[0];
-            if (file && file.type.startsWith('image/')) {
-                preview.src = URL.createObjectURL(file);
-                previewContainer.style.display = 'block';
-                result.style.display = 'none';
-                errorMessage.style.display = 'none';
-                uploadAndPredict(file);
-            }
-        }
-
-        async function uploadAndPredict(file) {
-            const formData = new FormData();
-            formData.append('image', file);
-
-            loading.style.display = 'block';
-            result.style.display = 'none';
-            errorMessage.style.display = 'none';
-
-            try {
-                const response = await fetch('/predict', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-
-                loading.style.display = 'none';
-
-                if (data.error) {
-                    showError(data.error);
-                } else {
-                    showResult(data);
-                }
-            } catch (error) {
-                loading.style.display = 'none';
-                showError('An error occurred while processing the image.');
-            }
-        }
-
-        function showResult(data) {
-            result.style.display = 'block';
-            const confidencePercent = (data.confidence * 100).toFixed(2);
-            
-            result.querySelector('.prediction-text').textContent = `Prediction: ${data.prediction}`;
-            result.querySelector('.confidence-level').style.width = `${confidencePercent}%`;
-            result.querySelector('.confidence-text').textContent = `Confidence: ${confidencePercent}%`;
-        }
-
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-        }
     </script>
 </body>
 </html> 
