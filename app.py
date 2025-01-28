@@ -1,18 +1,28 @@
+import os
 from flask import Flask, request, jsonify, render_template
 import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
-import os
 import json
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# Load the trained model
-MODEL_PATH = r'C:\Users\VEDANSHI\OneDrive\Desktop\Plant Detection\plantdisease.h5'
+# Create upload folder
+UPLOAD_FOLDER = 'uploads'
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+# Update paths to be relative to the current file
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, 'plantdisease.h5')
+LABELS_PATH = os.path.join(BASE_DIR, 'labels.json')
+
+# Load the model
 model = load_model(MODEL_PATH)
 
-# Load class labels from JSON file
-with open(r'C:\Users\VEDANSHI\OneDrive\Desktop\Plant Detection\class_labels.json', 'r') as f:
+# Load labels
+with open(LABELS_PATH, 'r') as f:
     CLASS_NAMES = json.load(f)
 
 # Rest of the code remains the same...
