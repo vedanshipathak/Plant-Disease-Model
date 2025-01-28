@@ -5,6 +5,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import json
 from werkzeug.utils import secure_filename
+import tensorflow as tf
 
 app = Flask(__name__)
 
@@ -15,11 +16,18 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 # Update paths to be relative to the current file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, 'plantdisease.h5')
+MODEL_PATH = os.path.join(BASE_DIR, 'plant_disease_model')
 LABELS_PATH = os.path.join(BASE_DIR, 'labels.json')
 
-# Load the model
-model = load_model(MODEL_PATH)
+# Add this before loading the model
+try:
+    # Disable eager execution
+    tf.compat.v1.disable_eager_execution()
+except:
+    pass
+
+# Load the model with custom_objects if needed
+model = tf.keras.models.load_model(MODEL_PATH)
 
 # Load labels
 with open(LABELS_PATH, 'r') as f:
@@ -73,4 +81,13 @@ def predict():
         return jsonify({'error': str(e)})
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=True)
+
+# Code to save your model (run this locally before deploying)
+model.save('plantdisease.h5', save_format='h5')
+
+# Convert H5 to SavedModel format
+model = tf.keras.models.load_model('plantdisease.h5')
+
+# Save in SavedModel format
+model.save('plant_disease_model') 
