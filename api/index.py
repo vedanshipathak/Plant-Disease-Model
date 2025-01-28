@@ -1,6 +1,5 @@
 from http.server import BaseHTTPRequestHandler
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
+import tflite_runtime.interpreter as tflite
 import numpy as np
 import json
 import os
@@ -8,8 +7,13 @@ import base64
 from io import BytesIO
 from PIL import Image
 
-# Load model and labels
-model = load_model('model/plantdisease.h5')
+# Load TFLite model
+interpreter = tflite.Interpreter(model_path='model/plant_disease_model.tflite')
+interpreter.allocate_tensors()
+
+# Get input and output tensors
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
 
 # Load labels
 with open('model/labels.json', 'r') as f:
@@ -20,7 +24,7 @@ def preprocess_image(img):
     img = img.resize((224, 224))
     
     # Convert to array and preprocess
-    img_array = image.img_to_array(img)
+    img_array = np.array(img, dtype=np.float32)
     img_array = np.expand_dims(img_array, axis=0)
     img_array = img_array / 255.0
     
@@ -40,8 +44,11 @@ class handler(BaseHTTPRequestHandler):
             # Preprocess image
             processed_image = preprocess_image(img)
             
-            # Make prediction
-            predictions = model.predict(processed_image)
+            # Make prediction using TFLite
+            interpreter.set_tensor(input_details[0]['index'], processed_image)
+            interpreter.invoke()
+            predictions = interpreter.get_tensor(output_details[0]['index'])
+            
             predicted_class = CLASS_NAMES[str(np.argmax(predictions[0]))]
             confidence = float(np.max(predictions[0]))
             
